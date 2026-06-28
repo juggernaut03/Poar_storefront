@@ -6,7 +6,7 @@ import ProductCard from '../components/ProductCard.jsx';
 import Carousel from '../components/Carousel.jsx';
 import { CategoryIcon } from '../utils.jsx';
 
-function SkeletonGrid({ count = 10 }) {
+function SkeletonGrid({ count = 12 }) {
   return (
     <div className="grid">
       {Array.from({ length: count }).map((_, i) => (
@@ -33,14 +33,15 @@ export default function Home({ hero }) {
   const [params, setParams] = useSearchParams();
   const q = params.get('q') || '';
   const activeCat = params.get('category') || '';
+  const activeSub = params.get('subcategory') || '';
 
   const [products, setProducts] = useState([]);
   const [featured, setFeatured] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // managed: [{name, subcategories}]
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.listCategories().then(setCategories).catch(() => {});
+    api.listManagedCategories().then(setCategories).catch(() => {});
     api.listProducts({ featured: 'true' }).then((r) => setFeatured(r.items || [])).catch(() => {});
   }, []);
 
@@ -49,20 +50,25 @@ export default function Home({ hero }) {
     const filter = {};
     if (q) filter.q = q;
     if (activeCat) filter.category = activeCat;
+    if (activeSub) filter.subcategory = activeSub;
     api
-      .listProducts(filter)
+      .listProducts({ ...filter, limit: 60 })
       .then((res) => setProducts(res.items || []))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-  }, [q, activeCat]);
+  }, [q, activeCat, activeSub]);
 
-  const setCat = (cat) => {
+  // Navigate preserving search; selecting a category clears any subcategory.
+  const go = ({ cat = activeCat, sub = '' }) => {
     const next = {};
     if (q) next.q = q;
     if (cat) next.category = cat;
+    if (sub) next.subcategory = sub;
     setParams(next);
   };
 
+  const activeCatObj = categories.find((c) => c.name === activeCat);
+  const subs = activeCatObj?.subcategories || [];
   const showExtras = !q && !activeCat;
 
   return (
@@ -99,9 +105,9 @@ export default function Home({ hero }) {
               </div>
               <div className="cats">
                 {categories.map((c) => (
-                  <div key={c} className={`cat ${activeCat === c ? 'active' : ''}`} onClick={() => setCat(c)}>
-                    <span className="ico"><CategoryIcon name={c} /></span>
-                    <div className="nm">{c}</div>
+                  <div key={c._id || c.name} className="cat" onClick={() => go({ cat: c.name })}>
+                    <span className="ico"><CategoryIcon name={c.name} /></span>
+                    <div className="nm">{c.name}</div>
                   </div>
                 ))}
               </div>
@@ -122,17 +128,33 @@ export default function Home({ hero }) {
 
       <section className="section" id="products">
         <div className="section-head">
-          <h2>{q ? `Results for “${q}”` : activeCat ? activeCat : 'All Products'}</h2>
+          <h2>
+            {q ? `Results for “${q}”` : activeCat ? activeCat : 'All Products'}
+            {activeSub && <span style={{ color: 'var(--muted)', fontWeight: 600 }}> · {activeSub}</span>}
+          </h2>
         </div>
 
+        {/* Category chips */}
         <div className="chips">
-          <span className={`chip ${!activeCat ? 'active' : ''}`} onClick={() => setCat('')}>All</span>
+          <span className={`chip ${!activeCat ? 'active' : ''}`} onClick={() => go({ cat: '' })}>All</span>
           {categories.map((c) => (
-            <span key={c} className={`chip ${activeCat === c ? 'active' : ''}`} onClick={() => setCat(c)}>
-              {c}
+            <span key={c._id || c.name} className={`chip ${activeCat === c.name ? 'active' : ''}`} onClick={() => go({ cat: c.name })}>
+              {c.name}
             </span>
           ))}
         </div>
+
+        {/* Subcategory chips (only when a category with subs is selected) */}
+        {subs.length > 0 && (
+          <div className="chips" style={{ marginTop: -8 }}>
+            <span className={`chip ${!activeSub ? 'active' : ''}`} onClick={() => go({ cat: activeCat, sub: '' })}>All {activeCat}</span>
+            {subs.map((s) => (
+              <span key={s} className={`chip ${activeSub === s ? 'active' : ''}`} onClick={() => go({ cat: activeCat, sub: s })}>
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <SkeletonGrid />

@@ -1,11 +1,14 @@
 import {
   Star, StarHalf, ShoppingBag, Utensils, Home, Smartphone, Dumbbell, Package,
+  CookingPot, Wrench, UtensilsCrossed, Archive, Flame, Gift, ShoppingBag as Bag, Hammer, Sparkles,
 } from 'lucide-react';
 
 export function formatPrice(value, currency = 'INR') {
   if (value == null) return null;
-  const symbol = currency === 'INR' ? '₹' : '';
-  return `${symbol}${Number(value).toLocaleString('en-IN')}`;
+  const symbol = currency === 'USD' ? '$' : currency === 'INR' ? '₹' : '';
+  const locale = currency === 'USD' ? 'en-US' : 'en-IN';
+  const opts = currency === 'USD' ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {};
+  return `${symbol}${Number(value).toLocaleString(locale, opts)}`;
 }
 
 export function discountPct(price, mrp) {
@@ -30,8 +33,18 @@ export function Stars({ value = 0, size = 14 }) {
 
 // Maps a category name to a lucide icon (falls back to a package).
 const CATEGORY_ICONS = {
+  Cookware: CookingPot,
+  'Kitchen Tools': Wrench,
+  'Tableware & Serving': UtensilsCrossed,
+  'Kitchen Storage': Archive,
+  'Pooja & Spiritual': Flame,
+  'Festive & Gifts': Gift,
+  'Bags & Accessories': Bag,
+  'Tools & Hardware': Hammer,
+  'Home Essentials': Sparkles,
+  // legacy / fallback names
   Kitchen: Utensils,
-  Home: Home,
+  Home,
   Electronics: Smartphone,
   Fitness: Dumbbell,
   General: ShoppingBag,

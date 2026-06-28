@@ -13,5 +13,6 @@ export const api = {
   },
   getProduct: (slug) => get(`/products/${slug}`),
   listCategories: () => get('/categories'),
+  listManagedCategories: () => get('/categories/managed'),
   getContent: (key) => get(`/content/${key}`),
 };
